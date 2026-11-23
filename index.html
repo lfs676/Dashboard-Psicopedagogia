@@ -648,6 +648,10 @@ select.fld{cursor:pointer;min-width:8.5rem}
         <p id="patient-complaint-display" class="text-[#585C50] line-clamp-2 leading-relaxed">
           Dificuldade na consolidação da leitura alfabética, trocas fonêmicas e bloqueio emocional diante da escrita escolar.
         </p>
+        <span class="font-extrabold text-[#242721] block mt-2 mb-0.5">
+          <i class="fa-solid fa-notes-medical mr-1 text-[#74618C]"></i>Diagnóstico:
+        </span>
+        <p id="patient-diagnosis-display" class="text-[#585C50] line-clamp-2 leading-relaxed"></p>
       </div>
     </div>
   </section>
@@ -1791,6 +1795,10 @@ select.fld{cursor:pointer;min-width:8.5rem}
           </select>
         </div>
 
+        <div>
+          <label for="patient-form-diagnosis" class="font-bold text-[#585C50] block mb-1">Diagnóstico:</label>
+          <textarea id="patient-form-diagnosis" rows="3" class="w-full p-2.5 bg-[#FAF7F2] border border-[#DCD4C8] rounded-xl text-xs" placeholder="Ex: Transtorno Específico de Aprendizagem com prejuízo na leitura (Dislexia), laudo de 03/2025..."></textarea>
+        </div>
         <div>
           <label class="font-bold text-[#585C50] block mb-1">Queixa Principal:</label>
           <textarea id="patient-form-complaint" rows="3" class="w-full p-2.5 bg-[#FAF7F2] border border-[#DCD4C8] rounded-xl text-xs" placeholder="Descreva os motivos da procura pelo atendimento..."></textarea>
@@ -5618,6 +5626,7 @@ select.fld{cursor:pointer;min-width:8.5rem}
       document.getElementById('patient-guardian-display').textContent = p.guardian || 'Não informado';
       document.getElementById('patient-contact-display').textContent = p.contact || 'Não informado';
       document.getElementById('patient-complaint-display').textContent = p.complaint || 'Não informada';
+      document.getElementById('patient-diagnosis-display').textContent = p.diagnosis || 'Não informado';
 
       const statusChip = document.getElementById('patient-status-chip');
       if (statusChip) {
@@ -5889,6 +5898,10 @@ select.fld{cursor:pointer;min-width:8.5rem}
         <div class="anamnese-field text-xs text-[#585C50]">
           <span class="font-bold">Idade</span>
           <span class="fld font-bold text-[#4F563E]">${escapeHtml(patientAge(p) || 'Não informada')}</span>
+        </div>
+        <div class="anamnese-field text-xs text-[#585C50] sm:col-span-2">
+          <span class="font-bold">Diagnóstico</span>
+          <span class="fld" style="white-space:pre-wrap">${escapeHtml(p.diagnosis || 'Não informado')}</span>
         </div>
         ${field('dataEntrevista', 'Data da entrevista', { t: 'date' })}
         ${field('informantes', 'Responsável entrevistado', {})}
@@ -6973,7 +6986,7 @@ select.fld{cursor:pointer;min-width:8.5rem}
         ['name', 'Nome'], ['id', 'Prontuário'], ['age', 'Idade'], ['birthdate', 'Data de nascimento'],
         ['school', 'Escolaridade'], ['schoolName', 'Escola'], ['guardian', 'Responsável'], ['contact', 'Telefone'],
         ['clinic', 'Clínica'], ['status', 'Status do prontuário'],
-        ['startDate', 'Data de início do acompanhamento'], ['complaint', 'Queixa principal']
+        ['startDate', 'Data de início do acompanhamento'], ['complaint', 'Queixa principal'], ['diagnosis', 'Diagnóstico']
       ]);
       const assessments = completedReportAssessments(patient);
       const evolution = reportItems(patient.evolucaoGeral, 'dominio', [], [
@@ -7422,7 +7435,7 @@ select.fld{cursor:pointer;min-width:8.5rem}
       editingId = id || null;
       const p = id && appState.patients.find(x => x.id === id);
       const g = (k, v) => { document.getElementById('patient-form-' + k).value = v || ''; };
-      g('name', p && p.name); g('birthdate', p && p.birthdate); g('school', p && p.school); g('guardian', p && p.guardian); g('contact', p && p.contact); g('complaint', p && p.complaint);
+      g('name', p && p.name); g('birthdate', p && p.birthdate); g('school', p && p.school); g('guardian', p && p.guardian); g('contact', p && p.contact); g('complaint', p && p.complaint); g('diagnosis', p && p.diagnosis);
       g('status', p && p.status); updateBirthdateAge();
       fillClinicSelect(p ? p.clinic : (UI.clinic !== 'all' ? UI.clinic : ''));
       document.getElementById('patient-modal-title').innerHTML = p ? '<i class="fa-solid fa-pen mr-2 text-[#74618C]"></i>Editar Aprendente' : '<i class="fa-solid fa-user-plus mr-2 text-[#74618C]"></i>Cadastrar Novo Aprendente';
@@ -7438,7 +7451,7 @@ select.fld{cursor:pointer;min-width:8.5rem}
       const v = k => document.getElementById('patient-form-' + k).value.trim();
       const birth = v('birthdate');
       if (birth && birth > todayIso()) { showToast('A data de nascimento não pode estar no futuro.', 'danger'); return; }
-      const f = { name: v('name'), birthdate: v('birthdate'), school: v('school'), guardian: v('guardian'), contact: v('contact'), status: v('status'), complaint: v('complaint'), clinic: v('clinic') };
+      const f = { name: v('name'), birthdate: v('birthdate'), school: v('school'), guardian: v('guardian'), contact: v('contact'), status: v('status'), complaint: v('complaint'), diagnosis: v('diagnosis'), clinic: v('clinic') };
       let p = editingId && appState.patients.find(x => x.id === editingId);
       if (p) Object.assign(p, f);
       else { p = blankPatient(); Object.assign(p, f); appState.patients.push(p); appState.activePatientId = p.id; }
@@ -7646,7 +7659,7 @@ select.fld{cursor:pointer;min-width:8.5rem}
     }
     function renderSidebar(rebuildClinics = true) {
       const q = UI.q.trim().toLowerCase(), ps = appState.patients;
-      const m = p => !q || [patientDisplayName(p), p.id, p.school, p.guardian, p.clinic, p.status].join(' ').toLowerCase().includes(q);
+      const m = p => !q || [patientDisplayName(p), p.id, p.school, p.guardian, p.clinic, p.status, p.diagnosis].join(' ').toLowerCase().includes(q);
       const clinics = document.getElementById('ps-clinics');
       if (rebuildClinics) {
         const allCount = ps.filter(m).length;
